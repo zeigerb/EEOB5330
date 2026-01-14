@@ -1,0 +1,97 @@
+---
+title: "My first R markdown file"
+output: html_document
+date: "2026-01-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+
+## The $\chi^2$ test
+
+We will create a document that reproduces the $\chi^2$ test from today's lecture to illustrate how R code can be embedded in a document. Recall that we have done computations in lecture to find that the test statistic is $X^2 = 0.1887$.  We can use the following code to get the p-value:
+
+
+```{r}
+1-pchisq(0.1887,1)
+```
+
+You can also hide the code in the output:
+
+```{r, echo=F}
+1-pchisq(0.1887,1)
+```
+
+
+If we were using R only to compute a single number, it might be nicer to embed it in a line of text:  The p-value is `r 1-pchisq(0.1887,1)`.
+
+
+To carry out the $\chi^2$ test in R, we could use the following:
+
+```{r, echo=T}
+data=c(366,123,12)
+probs = c(0.8533^2,2*0.8533*0.1467,0.1467^2)
+chisq.test(x=data,p=probs)
+```
+
+But remember that we need to adjust the degrees of freedom, so we need to find the p-value as we did above.
+
+
+We can also make plots in R markdown.  Here is the code to produce the HWE plot from lecture:
+
+
+```{r, echo=T, fig.align="center", fig.width=3.55, fig.height=3.55}
+myseq=seq(0,1,0.01)
+plot(myseq,myseq^2,type='l',xlab="p",ylab="Genotype frequency",lwd=3)
+lines(myseq,2*myseq*(1-myseq),col="maroon",lwd=3)
+lines(myseq,(1-myseq)^2,col="lightskyblue",lwd=3)
+legend(0.35,1,legend=c("AA","Aa","aa"),col=c("black","maroon","lightskyblue"),lwd=c(3,3,3),cex=0.7)
+```
+
+
+Here is the code that produced the probability density function of the $\chi^2$ distribution from lecture:
+
+```{r,echo=F, fig.align="center", fig.width=3.55, fig.height=3.55}
+myseq=seq(0,15,0.1)
+plot(myseq,dchisq(myseq,df=1),xlab="x",ylab="Density",type='l',lwd=3,ylim=c(0,0.3))
+lines(myseq,dchisq(myseq,df=3),lwd=3,col="maroon")
+lines(myseq,dchisq(myseq,df=5),lwd=3,col="lightskyblue")
+lines(myseq,dchisq(myseq,df=10),lwd=3,col="lightgreen")
+legend(9,0.29,legend=c("df=1","df=3","df=5","df=10"),col=c("black","maroon","lightskyblue","lightgreen"),lwd=c(3,3,3,3),cex=0.8)
+```
+
+
+
+## The learnPopGen package
+
+We will be using the learnPopGen package to illustrate population genetics principles during the first few weeks of the semester. You should all install this package on your own machines. To do this, 
+<ol> 
+<li> Open Rstudio
+<li> In the Console window (bottom left), type
+
+> install.packages("learnPopGen") and hit return
+
+<li> Wait a minute, and don't panic when you see a bunch of red text
+</ol>
+
+When your prompt returns, check to see whether the package has installed correctly by typing
+
+> library("learnPopGen")
+
+If this command returns your prompt, you're all set. If not, I can help you deal with whatever errors you encountered.
+
+<br><br>
+
+## Further info
+
+Using R markdown files is a good way to make sure your data analyses are reproducible. Because code can be embedded in the write-up of the analyses, you can conveniently allow comments that would enable someone to replicate your work later on. For example, this <a href="https://github.com/lkubatko/MOMSpeciationTimes/tree/main">GitHub repository</a> includes R markdown files of the analyses carried out for one of my papers, allowing anyone to reproduce the results.
+
+In this course, we'll require you to use R markdown to submit your homework assignments. You can expect this to be frustrating at first, but it will get better. Please feel free to ask if you have questions. Probably the best way to learn R markdown is to use the internet when you are stuck. The community of users of R/RStudio/R markdown is so large that virtually any question you might have will have been answered by someone else online. Googling "How can I .... in R markdown?" will often quickly lead you to an answer. We'll also post examples of R markdown files, like this one, on the course webpage.
+

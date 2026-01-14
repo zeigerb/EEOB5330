@@ -1,0 +1,49 @@
+---
+title: "Homework 1"
+author: "Benjamin Zeiger"
+format: 
+  html:
+    code-overflow: wrap
+    fig-width: 8
+    fig-height: 6
+---
+
+## Question 1
+
+Determine how many different genotypes are present at a locus with n alleles that differ by state. You already know that there is one genotype at a locus with one allele and three genotypes at a locus with two alleles. Continue this with three, four, and more alleles until you derive the general case. Then create a graph showing how the number of genotypes varies by the number of alleles at a diploid locus.
+
+## Answer
+
+In a one-allele, diploid gene, there is only one option: AA In a two-allele, diploid gene, there will be three options: AA, plus two new ones: BB and AB In a three-allele gene, there are now six genotypes: all the previous options, plus three new ones: AC, BC, and CC
+
+The number of possible genotypes g~n~ where n is the number of alleles is:
+
+g~n~ = n + g~n-1~
+
+```{r}
+
+alleles = seq(1,10,1)
+genotypes
+
+
+```
+
+## Question 2
+
+Graph the frequencies of the heterozygotes as a function of the allele frequencies ‘p’ & ‘q’ in a three ALLELE Hardy Weinberg Equilibrium system. At what allele frequencies are the frequency of heterozygotes maximized?
+
+```{r}
+
+
+
+```
+
+## Question 3
+
+In a sample of 1,617 Spanish Basques, the numbers of A, B, O, and AB blood types observed were 724, 110, 763, and 20, respectively. These blood groups are due to three alleles, IA, IB, and IO, with IAIAand IAIO having blood group A; IBIB and IBIO having blood group B, IAIB having blood group AB, and IOIOhaving blood group O. The best estimates of the alleles frequencies in Basque sample are 0.2661 for IA, 0.0411 for IB, and 0.6928 for IO. Calculate the expected numbers of the four blood group phenotypes and carry out a chi-square test for HWE.
+
+```{r}
+
+
+
+```
