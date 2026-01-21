@@ -16,9 +16,7 @@ Determine how many different genotypes are present at a locus with n alleles tha
 
 In a one-allele, diploid gene, there is only one option: AA In a two-allele, diploid gene, there will be three options: AA, plus two new ones: BB and AB In a three-allele gene, there are now six genotypes: all the previous options, plus three new ones: AC, BC, and CC
 
-The number of possible genotypes g~n~ where n is the number of alleles is:
-
-g~n~ = n + g~n-1~
+The number of possible genotypes increase following the triangle numbers (1, 3, 6, 10), so the number of possible genotypes (g) in a system with n alleles is g = n \* (n+1) / 2
 
 ```{r}
 
