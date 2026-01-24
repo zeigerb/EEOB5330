@@ -14,21 +14,45 @@ Determine how many different genotypes are present at a locus with n alleles tha
 
 ## Answer
 
-In a one-allele, diploid gene, there is only one option: AA In a two-allele, diploid gene, there will be three options: AA, plus two new ones: BB and AB In a three-allele gene, there are now six genotypes: all the previous options, plus three new ones: AC, BC, and CC
+In a one-allele, diploid gene, there is only one option: AA In a two-allele, diploid gene, there will be three options: AA, plus two new ones: BB and AB. In a three-allele gene, there are now six genotypes: all the previous options, plus three new ones: AC, BC, and CC
 
-The number of possible genotypes increase following the triangle numbers (1, 3, 6, 10), so the number of possible genotypes (g) in a system with n alleles is g = n \* (n+1) / 2
+The number of possible genotypes increase following the triangle numbers (1, 3, 6, 10), so the number of possible genotypes in a system of *n* alleles is equal to the sum of all integers between 1 and *n*. This sum is also equal to *n(n+1)/2*, which makes it easier to generate a vector, but I forgot how to derive that from the summation, so I did have to reference the wikipedia on "Triangular Numbers" to get here.
+
+Graphed below, we see the number of possible genotypes increases exponentially as the number of alleles increases
 
 ```{r}
 
-alleles = seq(1,10,1)
-genotypes
+library(tidyverse)
 
+alleles = seq(1,10,1)
+genotypes = alleles*(alleles+1)/2
+
+ggplot(mapping = aes(x = alleles, y = genotypes)) +
+  geom_point()
 
 ```
 
 ## Question 2
 
 Graph the frequencies of the heterozygotes as a function of the allele frequencies ‘p’ & ‘q’ in a three ALLELE Hardy Weinberg Equilibrium system. At what allele frequencies are the frequency of heterozygotes maximized?
+
+## Answer
+
+If we allow 'p' to represent the frequency of allele 'A,' and 'q' to represent frequency of allele 'B,' then our 3^rd^ value will be 'r' and will represent the frequency of allele 'C.'
+
+In order to represent this in terms of 'p' and 'q' we will let r = 1 - p - q.
+
+The frequencies of each genotype should then be
+
+f~AA~ = p^2^
+
+f~BB~ = q^2^
+
+f~CC~ = (1-p-q)^2^
+
+f~AB~ = pq
+
+f~AC~ = p \*
 
 ```{r}
 
