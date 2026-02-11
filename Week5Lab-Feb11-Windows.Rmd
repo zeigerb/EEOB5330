@@ -1,0 +1,266 @@
+---
+title: "R/ms Lab"
+output: html_document
+date: "2026-02-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "C:/Users/zeige/Documents/School/ENR_PhD_Courses/5330_PopGenPhyloGeo/ms")
+```
+
+This is a modified version of this lab. Thanks to Dhruv Arora for providing the necessary commands for Windows!
+
+### Part 1: Installing ms
+
+We will use the <b>ms</b> software today in class. You can run this in several places: on a Mac, on a PC with a unix emulator, within OSC, or on the ASC Unity cluster. We'll spend the first few minutes of class making sure everyone can run it in one of these ways. Below are some basic installation instructions.
+
+If you will run it on your own machine, you can download the software here: <https://uchicago.app.box.com/s/l3e5uf13tikfjm7e1il1eujitlsjdx13> . The file you want is <i>ms.tar.gz</i>.
+
+If you are installing in Unity or at OSC, then from a unix prompt, you can type:
+
+> wget <https://www.asc.ohio-state.edu/kubatko.2//ms.tar>
+
+In either case, we next unpack everything:
+
+> tar -xvf ms.tar
+
+Then compile <b>ms</b>:
+
+> gcc -O3 -o ms ms.c streec.c rand1.c -lm
+
+Finally, compile <b>sample_stats</b>:
+
+> gcc -O3 -o sample_stats sample_stats.c tajd.c -lm
+
+If you're on a newer Mac and get errors, let me know. I was able to modify the file <i>sample_stats.c</i> to get things to work on my machine. Things worked fine as they were in Unity. <br><br> If you're using a PC and aren't familiar with compiling C programs on it, I've placed executable versions of the program on our carmen page. <br><br>
+
+### Part 2: Basic <b>ms</b> syntax and integration with R
+
+Note: Throughout this lab, I'll be referring to the documentation for the <b>ms</b> software, which you can find in carmen. Please refer to this documentation for complete details.
+
+The basic syntax for <b>ms</b> is as follows:
+
+> ./ms nsam nreps -t $\theta$
+
+where $\theta = 4N_0\mu$, $N_0$ is the diploid population size, and $\mu$ is the neutral mutation rate <u>for the entire locus</u>.
+
+Try an initial run for 5 alleles with 2 replicates for $\theta = 5.0$:
+
+> ./ms 5 2 -t 5.0
+
+Make sure the results make sense to you. Note that instead of the mutation data, you can have <b>ms</b> provide the genealogies by using the \`\` -T '' option:
+
+> ./ms 5 2 -T
+
+It's a bit difficult to look at the Newick representation of the trees, but we can have the R package <b>ape</b> read in the trees produced by <b>ms</b>. We first need to strip away the extra text and save the trees to a file:
+
+> ./ms 5 2 -T \| tail -n +4 \| grep -v // \> treefile1
+
+An alternate that worked on Windows Powershell: 
+> ms.exe 5 2 -T | select -skip 3 | Out-File -Encoding utf8 treefile1
+
+Now the trees (and only the trees) are saved in a file called \`\`treefile'' in the directory from which <b>ms</b> was run. We can read them into R and plot them as follows:
+
+```{r}
+# library("ape")
+# mytrees = read.tree(file="treefile1")
+# par(mfrow=c(1,2))
+# plot.phylo(mytrees[[1]])
+# plot.phylo(mytrees[[2]])
+```
+
+Now let's try a bigger sample so that we can get an idea what coalescent genealogies under neutral models (with no demographic shifts, migration, or population subdivision) look like. Note that we can issue the call to <b>ms</b> from within R using the <i>system</i> command.
+
+```{r}
+
+# Mac:
+# system("./ms 20 9 -T | tail -n +4 | grep -v // > treefile2")
+
+
+# Windows 
+ system('powershell -Command "./ms.exe 20 9 -T | select -skip 3 | 
+   ? {$_ -notmatch \'//\'} | Out-File -Encoding utf8 treefile2"')
+
+mytrees2 = read.tree(file="treefile2")
+
+par(mfrow=c(3,3),mai=c(0.1,0.1,0.1,0.1))
+for (i in 1:9) plot.phylo(mytrees2[[i]])
+```
+
+The ms download includes another program that be used along with <b>ms</b> to compute some useful summary statistics from simulated data sets. The program is called <b>sample_stats</b>. To see how to use it, consider the code below, which generates 4 replicate samples each containing 30 alleles with $\theta=3.0$ and then computes summary statistics based on the mutation data for each sample (see page 19 of the documentation for information on what each statistic is). Run this at the command line, not from within R.
+
+> ./ms 30 4 -t 3.0 \| ./sample_stats
+
+Now, let's see how to scale this up and look at results within R. Specifically, let's look at the distribution of the number of segregating sites for this setting. We'll do this by generating 200 samples, writing the summary statistics to a file, reading those into R, and then plotting the distribution. This is all done in the code below.
+
+```{r}
+# Mac:
+# system("./ms 30 200 -t 3.0 | ./sample_stats > sumstats")
+
+# Windows:
+ system('powershell -Command "./ms.exe 30 200 -t 3.0 |
+       ./sample_stats.exe | Out-File -Encoding utf8 sumstats"')
+
+mydat = read.table(file="sumstats")
+
+hist(mydat[,4],xlab="Number of segregating sites",nclass=15,col="maroon",main=expression(paste("Distribution of the number of segregating sites when ",theta,"=3.0")))
+```
+
+<b><i>Question 1:</i></b> What happens to the distribution of the number of segregating sites when $\theta=10.0$? Try it!
+
+<b><i>Question 2:</i></b> Suppose you collect a data set for 30 alleles, and observe $S = 14$ segregating sites. Which is a better guess at the true value of $\theta$ -- 3.0 or 10.0?
+
+### Part 3: Changes in population size
+
+Next, we'll use <b>ms</b> to simulate data in the case of population expansion. Take a look at the bottom of page 7 in the documentation. First, let's make sure we understand how the population size is changing by graphing the function $$ N(t) = N_0 e^{-\alpha t}$$
+
+for a couple choices of $\alpha$. Note that $t$ represents the time before the present, measured in units of $4N_0$ generations.
+
+```{r}
+N0 = 100000
+myt = seq(1,40,1)
+plot(myt,N0*exp(-0.25*myt),type='l',lwd=3,col="maroon",xlab="time (2N0 generations before present)",ylab="Population size")
+lines(myt,N0*exp(-0.5*myt),col="lightskyblue",lwd=3)
+lines(myt,N0*exp(-1.0*myt),col="lightgreen",lwd=3)
+legend(20,60000,legend=c(expression(paste(alpha,"=0.25")),expression(paste(alpha,"=0.5")),expression(paste(alpha,"=1.0"))),lwd=c(3,3,3),col=c("maroon","lightskyblue","lightgreen"))
+```
+
+Now let's simulate from the coalescent under the exponential growth model and plot the genealogies. We'll go back to the earlier setting for which we had 20 alleles in the sample and took 9 samples
+
+```{r}
+# Mac:
+# system("./ms 20 9 -G 10.0 -T | tail +4 | grep -v // > treefile3")
+
+# Windows:
+ system('powershell -Command "./ms 20 9 -G 10.0 -T | select -skip 3 | 
+       ? {$_ -notmatch \'//\'} | Out-File -Encoding utf8 treefile3"')
+
+mytrees3 = read.tree(file="treefile3")
+par(mfrow=c(3,3),mai=c(0.1,0.1,0.1,0.1))
+for (i in 1:9) plot.phylo(mytrees3[[i]])
+```
+
+Let's compare the distribution of the number of segregating sites in these two settings with $\theta=3.0$, as well as in the case of instantaneous population growth.
+
+```{r}
+# Mac:
+# system("./ms 20 200 -t 3.0 | ./sample_stats > sumstats2")
+
+# Windows:
+ system('powershell -Command "./ms 20 200 -t 3.0 | ./sample_stats | Out-File -Encoding utf8 sumstats2"')
+
+mydat2 = read.table(file="sumstats2")
+par(mfrow=c(1,3))
+hist(mydat2[,4],xlab="Number of segregating sites",col="maroon",main="Constant Population Size")
+
+# Mac:
+# system("./ms 20 200 -G 10.0 -t 3.0 | ./sample_stats > sumstats3")
+
+# Windows
+ system('powershell -Command "./ms 20 200 -G 10.0 -t 3.0 |
+       ./sample_stats | Out-File -Encoding utf8 sumstats3"')
+
+mydat3 = read.table(file="sumstats3")
+hist(mydat3[,4],xlab="Number of segregating sites",col="maroon",main="Exponential Growth")
+
+# Mac:
+# system("./ms 20 200 -t 3.0 -eN 0.2 0.0001 | ./sample_stats > sumstats4")
+
+# Windows:
+system('powershell -Command "./ms 20 200 -t 3.0 -eN 0.2 0.0001 |
+       ./sample_stats | Out-File -Encoding utf8 sumstats4"')
+
+mydat4 = read.table(file="sumstats4")
+hist(mydat4[,4],xlab="Number of segregating sites",col="maroon",main="Instantaneous Growth")
+
+
+mean(mydat2[,4])
+mean(mydat3[,4])
+mean(mydat4[,4])
+```
+
+<br><br>
+
+### Part 4: Complex histories and population subdivision
+
+Now that you've gotten the hang of things, take a look at the documentation in more detail. Specifically, read through the section titled \`\`Spatial structure and migration'' (starting on page 8) and continue through the "Past demographic events" section. Then read through the examples that start on page 13.
+
+We'll conclude with a "challenge problem". Develop an <b>ms</b> command for the scenario in the figure below.
+
+# <img src="ChallengeProblem2.png" width="400" height="200"/>
+
+Use $N_1 = 20,000$, $N_2=30,000$, $N_3 = 40,000$, $\mu = 10^{-8}$, $T_1=15,000$ generations, $T_2 = 25,000$ generations, and $T_3 = 35,000$ generations. You can pick any $N_0$ you want, but $N_0 = 40,000$ is a good choice.
+
+<br><br>
+
+### Part 5: Inferring $\theta$ with Approximate Bayesian Computation (ABC)
+
+(This portion of the lab is given as R_example_1 in the ms software distribution)
+
+As discussed in class, ABC is a method for approximating the posterior distribution of a parameter by drawing repeatedly from a prior distribution and recording the value of the parameter for datasets that \`\`match'' the observed data closely enough. Here, we will consider estimating $\theta = 4N\mu$ based on a dataset in which $S=14$ segregating sites were observed in a sequence of length 1000bp.
+
+We'll consider models with and without recombination. The code below will generate 30,000 values of $\theta$ from a Uniform distribution on the interval $(0,20)$. The <b>ms</b> software will then be used to simulate 30,000 datasets with recombination ($\rho=20$) and with 30,000 datasets without recombination ($\rho=0$). The values of $\theta$ will be retained for any simulated dataset with $S=14$. The estimated posterior distribution in both cases will be plotted. In the case of no recombination, the true values of the posterior can be computed, and these will be plotted on the graph as points.
+
+To run the code below, you will need to compile the <b>dist3</b> program. If you are using a Mac, please download the file <b>dist3.c</b> from carmen, replace the dist3.c file that is in your ms folder with this one, and then compile the <b>dist3</b> program with command:
+
+> gcc -O3 -o dist3 dist3.c -lm
+
+The Windows executable dist3.exe can be downloaded from the Carmen page (thanks, Dhruv!).
+
+```{r}
+#  For rho=20.  :
+myunif <- runif(30000,max=20.0)   # draws from the prior distribution of theta
+ 
+# Mac:
+# write(myunif,file="|./ms 10 30000 -t tbs -r 20. 1000 | grep 'segsites: 14$' -B 1 | grep '//' | cut -f 2  >msout")
+
+
+# Windows alternate starts
+write(myunif, file = "temp_unif.txt")
+
+cmd <- 'powershell -Command "Get-Content temp_unif.txt | ./ms.exe 10 30000 -t tbs -r 20. 1000 | Select-String -Pattern \'segsites: 14$\' -Context 1,0 | ForEach-Object { $_.Context.PreContext } | Select-String \'//\' | ForEach-Object { $_ -replace \'.*?//\\s+\', \'\' } | Out-File -Encoding utf8 msout"'
+
+system(cmd)
+# Windows alternate ends
+
+ thetas <- scan("msout")    # posterior theta''s 
+ plot(density(thetas), xlim=c(0,20), xlab=expression(paste(theta)), main=expression(paste("Estimated posterior distribution of ",theta)))
+ rug(thetas)
+
+#  For rho=0.  : 
+myunif <- runif(30000,max=20.0)
+ 
+# Mac:
+# write(myunif,file="|./ms 10 30000 -t tbs -r 0. 1000 | grep 'segsites: 14$' -B 1 | grep '//' | cut -f 2  >msout")
+ 
+# Windows alternate starts
+write(myunif, file = "temp_unif.txt", ncolumns = 1)
+
+cmd <- 'powershell -Command "Get-Content temp_unif.txt | ./ms.exe 10 30000 -t tbs -r 0. 1000 | Select-String -Pattern \'segsites: 14$\' -Context 1,0 | ForEach-Object { $_.Context.PreContext } | Select-String \'//\' | ForEach-Object { $_ -replace \'.*?//\\s+\', \'\' } | Out-File -Encoding utf8 msout"'
+
+system(cmd)
+# Windows alternate ends
+ 
+ thetas <- scan("msout")
+ lines(density(thetas), col="green" )
+
+# The following calculates P(S=14| theta) for theta = 1, 2, 3, ..., 20 under
+#  the assumption that rho=0, and plots
+# these values (normalized by the sum of all of them.)  Uses the program dist3.c 
+# Plots the results on the above plot.
+
+# Mac:
+# mycall2 <- paste(c("./dist3 10 14", 1:20, " >mylik.out"), collapse=" " )
+
+# Windows:
+ mycall2 <- paste0('powershell -Command ".\\dist3.exe 10 14 ', paste(1:20, collapse=" "), ' | Out-File -Encoding utf8 mylik.out"')
+
+ 
+system(mycall2)
+
+mylik1 <- scan("mylik.out")
+dim(mylik1) <- c(2,20)
+mylik2 <- t( mylik1)
+points( mylik2[,1],mylik2[,2]/sum(mylik2[,2]) )
+```
