@@ -1,0 +1,133 @@
+---
+title: "R Lab -- Week 7"
+output: html_document
+date: "2026-02-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Part 1: Reading FASTA files using <b>ape</b>
+
+In this week's R lab, we will carry out some of the analyses we've discussed in class so far on an empirical dataset. We'll use the data stored in the file "Vesper-2.cytb.fasta", which you can download from the carmen page. As the name implies this is the cytochrome-b gene in a sample of bats, stored in fasta format. You may want to look at the data by opening it in a text file before reading it into R.
+
+To read the data into R, we use the <i>read.FASTA</i> function in the <b>ape</b> package. The <b>ape</b> package should have installed automatically when you installed <b>pegas</b>. How many sequences and how many sites do the data contain? What are the base frequencies in the dataset?
+
+```{r, echo=T, eval=T}
+library("ape")
+
+# read the data in and store it in an object called "x", which has class "DNAbin".
+x = read.FASTA("Vesper-2.cytb.fasta")
+
+# check to see that it's been read correctly
+x
+```
+
+Though we typically won't need to, we could look at the individual elements of x using the following commands:
+```{r, echo=T, eval=T}
+# show the labels of each sequence
+names(x)
+
+# access an individual sequence -- here, the 4th
+x[4]
+
+# print the sequence data for the 4th sequence - note that it is encoded
+# A = 88, C = 28, G = 48, T = 18
+x[[4]]
+
+```
+
+<br><br>
+
+
+### Part 2: Calculating pop gen summary statistics using <b>pegas</b>
+
+We'll now use these data to compute some of the statistics we've discussed:  nucleotide polymorphism (Watterson's estimator), nucleotide diversity (Tajima's estimator), and Tajima's D statistic.  We'll use the <b>pegas</b> package for this purpose.
+
+First, let's have pegas give us the number of segregating sites, which we denoted by $S$ is lecture (see Lecture 5).
+```{r, echo=T, eval=T}
+library("pegas")
+
+# look at which sites are segregating
+seg.sites(x)
+
+# compute S and store it in the variable x.s -- this is done by looking at the length of the object created by the seg.sites function above
+x.s = length(seg.sites(x))
+x.s
+```
+
+The <b>pegas</b> package doesn't automatically compute the nucleotide polymorphism, but it's easy enough to write a function for that. It does compute the nucleotide diversity. Next we compute both and compare them. Note that because the nucleotide diversity is scaled by dividing by the total number of sites in the <b>pegas</b> package, we'll also scale the nucleotide polymorphism this way.
+
+```{r, echo=T, eval=T}
+# function to compute the nucleotide polymorphism
+# we need the number of sequences, the value S, and a_1 from the Lecture 5 notes
+
+nuc.poly = function(mydat) {
+  S = length(seg.sites(mydat))
+  nsites = length(x[[1]])
+  upper = length(names(mydat))-1
+  a1 = sum(1/1:upper)
+  return(S/(nsites*a1))  # scale by number of sites
+}
+
+nuc.poly(x)
+
+# compute the nucleotide diversity
+nuc.div(x)
+
+# nucleotide diversity and its variance
+nuc.div(x,variance=T)
+```
+
+
+If we wanted to get the variance for the nucleotide polymorphism, we would need to write a function for this, which is fairly straightforward using the formulas in our notes. If you'd like to challenge yourself, give this a try!
+
+Next we compute Tajima's D and test for deviations from neutrality.
+
+```{r, echo=T, eval=T}
+tajima.test(x)
+```
+
+What conclusions would you make about these sequences regarding deviations from neutrality?
+
+<br><br>
+
+### Part 3: Haplotypes
+
+The <b>ape</b> and <b>pegas</b> packages can also be used to compare sequences. Two relevant kinds of analysis would be to compute pairwise distances and to look at haplotypes in a collection of sequences.  Let's first look at haplotypes.  Consider the following commands:
+
+```{r, echo=T, eval=T}
+# identify haplotypes present in the data
+h = haplotype(x)
+h
+
+# compare the first two haplotypes
+diffHaplo(h,1,2)
+
+```
+
+Finally, we can compute pairwise distances between sequences using the <i>dist.dna</i> function in <b>ape</b>. Look at the help for this function, and then try it for our data. One important choice is what model is used to compute the distance. Compare the two possibilities below. Look at the distance between sequences 1 and 2, and compare this value to the haplotype differences noted above.
+
+```{r, echo=T, eval=T}
+dist.K80 = dist.dna(x,as.matrix=T)
+dist.K80[1,2]
+dist.raw = dist.dna(x,model="raw",as.matrix=T)
+dist.raw[1,2]
+```
+
+We can also use the <b>ape</b> package to plot trees relating the sequences. First, we'll use the distances we've computed to construct a tree using the neighbor-joining algorithm. Then we can plot the tree. The code is below.
+
+```{r, echo=T, eval=T}
+tree.K80 = nj(dist.K80)
+plot(tree.K80)
+```
+
+Since the names aren't really meaningful, we can assign different names to the tips. We can also experiment with the display a little to make the tree look a bit nicer. The tree plot capabilities in <b>ape</b> are fairly nice if you have the patience to experiment with them! You can use <i>help("plot.phylo")</i> to see options.
+
+```{r, echo=T, eval=T}
+names(x) = c("bat 1","bat 2","bat 3","bat 4","bat 5"," bat 6", "bat 7","bat 8","bat 9","bat 10")
+dist.K80 = dist.dna(x,as.matrix=T)
+tree.K80 = nj(dist.K80)
+plot(tree.K80,edge.width=3,cex=1.5, adj = 0.5)
+```
