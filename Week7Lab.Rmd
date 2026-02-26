@@ -114,6 +114,9 @@ dist.K80 = dist.dna(x,as.matrix=T)
 dist.K80[1,2]
 dist.raw = dist.dna(x,model="raw",as.matrix=T)
 dist.raw[1,2]
+
+max(dist.K80)
+max(dist.raw)
 ```
 
 We can also use the <b>ape</b> package to plot trees relating the sequences. First, we'll use the distances we've computed to construct a tree using the neighbor-joining algorithm. Then we can plot the tree. The code is below.
@@ -129,5 +132,9 @@ Since the names aren't really meaningful, we can assign different names to the t
 names(x) = c("bat 1","bat 2","bat 3","bat 4","bat 5"," bat 6", "bat 7","bat 8","bat 9","bat 10")
 dist.K80 = dist.dna(x,as.matrix=T)
 tree.K80 = nj(dist.K80)
-plot(tree.K80,edge.width=3,cex=1.5, adj = 0.5)
+plot(tree.K80,edge.width=3,cex=1.5, adj = 0.5, type = "unrooted", use.edge.length = FALSE)
+
+dist.raw = dist.dna(x,model="raw",as.matrix=T)
+tree.raw = nj(dist.raw)
+plot(tree.raw,edge.width=3,cex=1.5, adj = 0.5, type = "unrooted", use.edge.length = FALSE)
 ```
