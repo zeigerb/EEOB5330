@@ -1,0 +1,141 @@
+---
+title: "R Lab -- Week 9"
+output: html_document
+date: "2026-03-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "C:/Users/zeige/Documents/School/ENR_PhD_Courses/5330_PopGenPhyloGeo/git/EEOB5330/wk9Lab")
+library("pegas")
+library("apex")
+library("adegenet")
+library("mmod")
+library("poppr")
+```
+
+In today's lab, we'll see how to use several population genetics packages to compute measures of genetic differentiation and to run an AMOVA analysis in R. We'll use a data set on 
+ the orchid bee <i>Eulaema bombiformis</i> that includes two genes, Cytochrome Oxidase I (a mitochondrial gene) and 
+Calcium/Calmodulin-Dependent Protein Kinase II (a nuclear gene).  The data are a subset of those used in the paper:
+<br><br>
+Lopez-Uribe, M.M. et al. 2014. Climate, physiological tolerance and sex-biased dispersal shape genetic structure of Neotropical orchid bees. <i>Molecular Ecology</i> 23: 1874-1890.
+<br><br>
+This lab is adapted from the tutorial found <a href="https://popgen.nescent.org/PopDiffSequenceData.html">here</a>.
+
+The steps below can be used to read the data into R, transform it to a <b>genind</b> object, compute pairwise distances, and define the populations and regions:
+
+```{r}
+# read the bee data into R 
+# be sure to set your path correctly in the first code chunk above
+beeData <- read.multiFASTA(c("Ebom_mt.fas", "Ebom_CAD.fas"))
+
+# plot the data
+plot(beeData, cex = 0.2)
+
+# the locus names assigned by R include a . which is not allowed, so we first re-name loci
+setLocusNames(beeData) <- gsub(".fas", "", getLocusNames(beeData))
+
+# then create the genind object
+beeData.gid <- multidna2genind(beeData, mlst = TRUE)
+
+# assign populations and regions
+my_strata <- data.frame(regions = rep(c("West", "East"), each = 20), 
+                         populations = rep(c("CA", "Ch", "Am", "AF"), each = 10))
+strata(beeData.gid) <- my_strata
+
+setPop(beeData.gid) <- ~populations
+
+# look at the assignment of individuals to strata
+strata(beeData.gid)
+
+beeData.gid
+
+# compute pairwise distances
+beeData_dist <- dist.multidna(beeData, pool = TRUE)
+
+```
+
+<br><br>
+
+## Part 1: Population differentiation: overall F-statistics
+
+We'll begin by computing some statistics that quantify the extent of population differentiation. These are Nei's $G_{st}$, Hedrick's $G_{st}$, and Jost's D.
+
+```{r}
+diff_stats(beeData.gid) # this function calculates overall Nei's Gst, Hedrick's Gst and Jost's D for the dataset
+```
+
+We can also use a bootstrapping procedure to quantify the variability in our estimates. The code below does this for each of three statistics.
+
+```{r}
+bs <- chao_bootstrap(beeData.gid, nreps = 100)
+summarise_bootstrap(bs, Gst_Nei)     # for Nei's Gst
+summarise_bootstrap(bs, Gst_Hedrick) # for Hedrick's Gst
+summarise_bootstrap(bs, D_Jost)      # for Jost's D
+```
+
+<br><br>
+
+## Part 2: Population differentiation: pairwise F-statistics
+
+We can also compute these three statistics for pairs of populations. The code below shows these values. Note the ``linearized'' option.
+
+```{r}
+pairwise_Gst_Nei(beeData.gid, linearized = FALSE)
+pairwise_Gst_Hedrick(beeData.gid, linearized = FALSE)
+pairwise_D(beeData.gid, linearized = FALSE)
+```
+
+
+<br><br>
+
+## Part 3: AMOVA
+
+Finally, we'll run an AMOVA for these data.  Below is a basic run. Notice that we set the number of permutations -- this is how the null distribution is approximated, as we discussed in lecture. More is better here, but the analysis will take longer as we increase this number (and as the data set size -- in terms of number of individuals -- grows).
+
+```{r}
+# run the amova using the implementation in the pegas package
+# store the result in an object called bee_amova
+bee_amova <- pegas::amova(beeData_dist ~ regions/populations, data = strata(beeData.gid), nperm = 1000)
+
+# amova table
+bee_amova$tab
+
+```
+
+Compare the results in the table to the table from Monday's lecture (slide 16).  Note here that there are two groups (West and East), so $G=2$. Each group has two populations, so $I_1=2$ and $I_2=2$, and there are 40 individuals ($N=40$). Using this information, we can match numbers up to the table entries from lecture.
+
+To see the results of the hypothesis tests and to get the $\Phi$ values, we can do the following:
+
+
+```{r}
+# variance components
+bee_amova$varcomp
+
+# phi-statistics
+sig2 <- setNames(bee_amova$varcomp$sigma2, rownames(bee_amova$varcomp))
+getPhi(sig2)
+
+```
+
+
+<br><br>
+
+Note that regions are not significant, but populations are. As an illustration, let's run a model with only populations.
+
+```{r}
+bee_amova2 <- pegas::amova(beeData_dist ~ populations, data = strata(beeData.gid), nperm = 1000)
+
+# amova table
+bee_amova2$tab
+
+# variance components
+bee_amova2$varcomp
+
+# phi-statistics
+sig22 <- setNames(bee_amova2$varcomp$sigma2, rownames(bee_amova2$varcomp))
+getPhi(sig22)
+```
+
+Ues the results of this lab to complete the lab quiz in carmen.
+
