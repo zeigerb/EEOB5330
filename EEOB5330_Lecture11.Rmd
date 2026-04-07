@@ -1,0 +1,437 @@
+---
+title: "EEOB 5330 -- Spring 2026"
+author: "Lecture 11 - February 18, 2026"
+date: 'Topic: Selection'
+output:
+  beamer_presentation:
+    fig_width: 1.5
+    fig_height: 1.5
+    fig_caption: no
+    keep_tex: yes
+    includes:
+      in_header: preamble.tex
+  ioslides_presentation: default
+fontsize: 10pt
+---
+
+```{r, echo=FALSE, tidy=TRUE, eval=TRUE, mysize=TRUE, size='\\scriptsize', fig.align="center", fig.width=3.8, fig.height=2.8, comment=""}
+library("knitr") ## if this gives an error, run first install.packages("knitr")
+options(stringsAsFactors=FALSE)
+knitr::knit_hooks$set(mysize = function(before, options, envir) {
+  if (before) 
+    return(options$size)
+})
+options(width = 60)
+set.seed(1)
+```
+
+## \small Review and plan for today
+
+\begin{itemize}
+\item {\ncr Last time:} Introduction to modeling selection
+\myvs
+\item What assumptions do we make in HWE?
+\begin{itemize}
+\item  {\ncb no mutation} - no new alleles are introduced via point mutations
+\item {\bf {\ncb no selection} - alleles are not adaptive}
+\item  {\ncb no migration} - no new alleles are introduced via the movement of individuals
+\item   {\ncb no genetic drift} - population size is infinitely large (or nearly so)
+\item  {\ncb no assortative mating} - each individual has an equal chance of producing
+offspring with any member of the opposite sex
+\end{itemize}
+\myvs
+\item {\ncr Today:} Look at types of selection and their effect on alleles frequencies; Tajima's D
+\end{itemize}
+\vspace{0.5in}
+
+## \small Modeling selection
+
+\begin{itemize}
+\item {\ncr Idea:} Ignore mutation and drift, and think about how to add selection to the formation of a new generation
+\item Consider a single-locus, 2 allele system, with $p$ = frequency of the $A$ allele, $q=1-p$ = frequency of the $a$ allele
+\end{itemize}
+\myvs
+\begin{center}
+\begin{tabular}{c c c c}
+\hline
+& & & \\
+{\ncb Genotype} & {\bf $AA$} & {\bf $Aa$} & {\bf $aa$}\\
+& & & \\
+\hline
+& & & \\
+{\ncb Frequency} & $p^2$ & $2pq$ & $q^2$\\
+& & & \\
+{\ncb Viability} & $w_{AA}$ & $w_{Aa}$ & $w_{aa}$ \\
+& & & \\
+{\ncb Frequency} & $\frac{p^2 w_{AA}}{\bar{w}}$ & $\frac{2pqw_{Aa}}{\bar{w}}$ & $\frac{q^2 w_{aa}}{\bar{w}}$ \\
+{\ncb after selection} & & & \\
+& & & \\
+\hline
+\end{tabular}
+\end{center}
+\myvs\myvs
+
+where $\bar{w} = p^2 w_{AA} + 2pq w_{Aa} + q^2 w_{aa}$ \vspace{0.5in}
+
+## \small Modeling selection
+
+\begin{itemize}
+\item {\ncr Question:} How does the frequency of the $A$ allele change in one generation?
+\vspace{0.5in}
+\item After some math, we have
+$$ p^{'} - p = \Delta p = \frac{pq \left[ p(w_{AA} - w_{Aa}) + q(w_{Aa}-w_{aa})\right]}{p^2 w_{AA} + 2pq w_{Aa} + q^2 w_{aa}}$$
+\item {\ncb Gillespie:} ``{\itshape single most important equation in all of population genetics and evolution}''
+\myvs
+\item {\ncb Why?} Allows us to study dynamics of a system under selection by looking at relationships between genotype viabilities
+\end{itemize}
+\vspace{0.5in}
+
+## \small Relative vs. absolute fitness
+
+\begin{itemize}
+\item Note that the model doesn't change if we instead view \begin{color}{green}viabilities\end{color} as being {\ncr relative} to one another (which is all we can typically do in practice)
+\end{itemize}
+\myvs\myvs
+\begin{center}
+\begin{tabular}{ c c c c}
+ & $\mathbf{AA}$ & $\mathbf{Aa}$ & $\mathbf{aa}$\\
+ & & & \\
+\begin{color}{green}viability\end{color} & \begin{color}{green}$w_{AA}$\end{color} & \begin{color}{green}$w_{Aa}$\end{color} & \begin{color}{green}$w_{aa}$\end{color} \\
+& & & \\
+{\ncr relative fitness} & {\ncr 1} & {\ncr $w_{Aa}/w_{AA}$} & {\ncr $w_{aa}/w_{AA}$} \\
+& & & \\
+{\ncb More intuitive} & {\ncb 1} & {\ncb $1-hs$} & {\ncb $1-s$} \\
+{\ncb parameterization} & & & \\
+
+\end{tabular}
+\end{center}
+\myvs
+\begin{itemize}
+\item  $s$ = selection coefficient:
+\myvs
+\item $h$ = heterozygous effect:
+\end{itemize}
+\vspace{0.25in}
+
+## \small Heterozygous effect
+
+\begin{itemize}
+\item $h$ = measure of the fitness of the heterozygote relative to the selective difference between the two homozygotes
+\myvs
+\item Interpretation:
+\myvs
+\begin{center}
+\begin{tabular}{c c}
+$h=0$ & $A$ dominant, $a$ recessive\\
+$h = 1$ & $a$ dominant, $A$ recessive\\
+$0<h<1$ & incomplete dominance \\
+$h<0$ & overdominance \\
+$h>1$ & underdominance\\
+\end{tabular}
+\end{center}
+\myvs
+\item We will look at the dynamics of the allele frequency $p$ for each of these cases
+\myvs
+\item Note that $\Delta p$ becomes
+$$\Delta p = \frac{pqs \left[ ph+q(1-h)\right]}{\bar{w}}$$
+where $$\bar{w} = 1-2pqhs-q^2 s$$
+\end{itemize}
+\vspace{0.25in}
+
+## \small Case 1: directional selection
+
+\begin{itemize}
+\item {\ncr Directional selection} refers to the case of {\ncb incomplete dominance:}  $0<h<1$
+\myvs
+\begin{itemize}
+\item fitness of $AA$ > fitness of $Aa$ > fitness of $aa$
+\end{itemize}
+\myvs
+\item {\ncr Question:} How do we expect the frequency of the $A$ allele to change over time?
+\vspace{2.0in}
+\end{itemize}
+
+## \small Case 1: directional selection
+
+\begin{itemize}
+\item Graph $\Delta p$ as a function of $p$ for $h=0.5$ and $s=0.1$
+\end{itemize}
+
+```{r, echo=F, eval=T, fig.align="center", fig.width=4.25, fig.height=3.5}
+myseq=seq(0,1,0.01)
+deltap = function(pA,h,s){
+  wbar =  1-2*pA*(1-pA)*h*s-s*(1-pA)^2
+  deltapA = pA*(1-pA)*s*(pA*h+(1-pA)*(1-h))/wbar
+  return(deltapA)
+}
+plot(myseq,deltap(myseq,0.5,0.1),xlab="allele frequency, p",ylab=expression(paste(Delta," p")),lwd=3,type='l', col="maroon",ylim=c(0,0.015))
+```
+
+## \small Case 1: directional selection
+
+\begin{itemize}
+\item Graph the value of $p$ in the next generation as a function of the current value of $p$ for $h=0.5$ and $s=0.1$
+\end{itemize}
+
+```{r, echo=F, eval=T, fig.align="center", fig.width=3.25, fig.height=3.5}
+p.by.gen=matrix(0,ncol=2,nrow=101)
+p.by.gen[1,1] = 0
+p.by.gen[1,2] = 0.05
+for (i in 2:101) {
+  p.by.gen[i,1] = i-1
+  p.by.gen[i,2] = p.by.gen[i-1,2] + deltap(p.by.gen[i-1,2],0.5,0.1)
+}
+plot(p.by.gen[,1],p.by.gen[,2],xlab="Generation",ylab="p",lwd=3,type='l', col="lightskyblue",ylim=c(0,1))
+```
+
+## \small Case 1: directional selection
+
+\begin{itemize}
+\item Regardless of the starting point for $p$, the frequency will always move toward 1
+\begin{itemize}
+\item Will it ever reach 1?
+\end{itemize}
+\vspace{0.5in}
+\item The value $p=1$ is called a {\ncr stable equilibrium}
+\myvs
+\item The value $p=0$ is called {\ncb unstable equilibrium}
+\myvs
+\end{itemize}
+\vspace{0.5in}
+
+## \small Case 2: balancing selection
+
+\begin{itemize}
+\item {\ncr Balancing selection} refers to the case of {\ncb overdominance:}  $h<0$
+\myvs
+\begin{itemize}
+\item fitness of $Aa$ > $AA$ and fitness of $Aa$ > $aa$
+\end{itemize}
+\myvs
+\item {\ncr Question:} How do we expect the frequency of the $A$ allele to change over time?
+\vspace{2.0in}
+\end{itemize}
+
+## \small Case 2: balancing selection
+
+\begin{itemize}
+\item Graph $\Delta p$ as a function of $p$ for $h=-0.5$ and $s=0.1$
+\end{itemize}
+
+```{r, echo=F, eval=T, fig.align="center", fig.width=4.25, fig.height=3.5}
+myseq=seq(0,1,0.01)
+deltap = function(pA,h,s){
+  wbar =  1-2*pA*(1-pA)*h*s-s*(1-pA)^2
+  deltapA = pA*(1-pA)*s*(pA*h+(1-pA)*(1-h))/wbar
+  return(deltapA)
+}
+plot(myseq,deltap(myseq,-0.5,0.1),xlab="allele frequency, p",ylab=expression(paste(Delta," p")),lwd=3,type='l', col="maroon",ylim=c(-0.01,0.02))
+lines(c(-0.05,1.05),c(0,0))
+```
+
+## \small Case 2: balancing selection
+
+\begin{itemize}
+\item Graph the value of $p$ in the next generation as a function of the current value of $p$ for $h=-0.5$ and $s=0.1$
+\end{itemize}
+
+```{r, echo=F, eval=T, fig.align="center", fig.width=3.25, fig.height=3.5}
+p.by.gen=matrix(0,ncol=2,nrow=101)
+p.by.gen[1,1] = 0
+p.by.gen[1,2] = 0.1
+p.by.gen2=matrix(0,ncol=2,nrow=101)
+p.by.gen2[1,1] = 0
+p.by.gen2[1,2] = 0.9
+for (i in 2:101) {
+  p.by.gen[i,1] = i-1
+  p.by.gen[i,2] = p.by.gen[i-1,2] + deltap(p.by.gen[i-1,2],-0.5,0.1)
+  p.by.gen2[i,1] = i-1
+  p.by.gen2[i,2] = p.by.gen2[i-1,2] + deltap(p.by.gen2[i-1,2],-0.5,0.1)
+}
+plot(p.by.gen[,1],p.by.gen[,2],xlab="Generation",ylab="p",lwd=3,type='l', col="lightskyblue",ylim=c(0,1.05))
+lines(p.by.gen2[,1],p.by.gen2[,2],col="lightskyblue",lwd=3)
+```
+
+## \small Case 2: balancing selection
+
+\begin{itemize}
+\item {\ncr Stable equilibrium} at $\tilde{p} = \frac{h-1}{2h-1}$
+\myvs
+\item {\ncb Unstable equilibria} at $p=0$ and $p=1$
+\myvs
+\item Empirical example:  sickle-cell disease and malaria
+\myvs
+\begin{itemize}
+\item Heterozygotes do not have sickle-cell disease {\itshape and} are resistant to malaria
+\item Homozygotes for the non-sickle-cell allele are susceptible to malaria
+\item Homozygotes for the sickle-cell allele have sickle-cell disease
+\item Interestingly, allele frequencies vary in regions where malaria is less prevalent or absent, reflecting differing selective pressures
+\end{itemize}
+\end{itemize}
+\vspace{0.5in}
+
+## \small Case 3: disruptive selection
+
+\begin{itemize}
+\item {\ncr disruptive selection} refers to the case of {\ncb underdominance:}  $h>1$
+\myvs
+\begin{itemize}
+\item fitness of $Aa$ < $AA$ and fitness of $Aa$ < $aa$
+\end{itemize}
+\myvs
+\item {\ncr Question:} How do we expect the frequency of the $A$ allele to change over time?
+\vspace{2.0in}
+\end{itemize}
+
+## \small Case 3: disruptive selection
+
+\begin{itemize}
+\item Graph $\Delta p$ as a function of $p$ for $h=1.5$ and $s=0.1$
+\end{itemize}
+
+```{r, echo=F, eval=T, fig.align="center", fig.width=4.25, fig.height=3.5}
+myseq=seq(0,1,0.01)
+deltap = function(pA,h,s){
+  wbar =  1-2*pA*(1-pA)*h*s-s*(1-pA)^2
+  deltapA = pA*(1-pA)*s*(pA*h+(1-pA)*(1-h))/wbar
+  return(deltapA)
+}
+plot(myseq,deltap(myseq,1.5,0.1),xlab="allele frequency, p",ylab=expression(paste(Delta," p")),lwd=3,type='l', col="maroon",ylim=c(-0.01,0.02))
+lines(c(-0.05,1.05),c(0,0))
+```
+
+## \small Case 3: disruptive selection
+
+\begin{itemize}
+\item Graph the value of $p$ in the next generation as a function of the current value of $p$ for $h=1.5$ and $s=0.1$
+\end{itemize}
+
+```{r, echo=F, eval=T, fig.align="center", fig.width=3.25, fig.height=3.5}
+p.by.gen=matrix(0,ncol=2,nrow=101)
+p.by.gen[1,1] = 0
+p.by.gen[1,2] = 0.1
+p.by.gen2=matrix(0,ncol=2,nrow=101)
+p.by.gen2[1,1] = 0
+p.by.gen2[1,2] = 0.9
+p.by.gen3=matrix(0,ncol=2,nrow=101)
+p.by.gen3[1,1] = 0
+p.by.gen3[1,2] = 0.25
+p.by.gen4=matrix(0,ncol=2,nrow=101)
+p.by.gen4[1,1] = 0
+p.by.gen4[1,2] = 0.26
+p.by.gen5=matrix(0,ncol=2,nrow=101)
+p.by.gen5[1,1] = 0
+p.by.gen5[1,2] = 0.24
+for (i in 2:101) {
+  p.by.gen[i,1] = i-1
+  p.by.gen[i,2] = p.by.gen[i-1,2] + deltap(p.by.gen[i-1,2],1.5,0.1)
+  p.by.gen2[i,1] = i-1
+  p.by.gen2[i,2] = p.by.gen2[i-1,2] + deltap(p.by.gen2[i-1,2],1.5,0.1)
+  p.by.gen3[i,1] = i-1
+  p.by.gen3[i,2] = p.by.gen3[i-1,2] + deltap(p.by.gen3[i-1,2],1.5,0.1)
+  p.by.gen4[i,1] = i-1
+  p.by.gen4[i,2] = p.by.gen4[i-1,2] + deltap(p.by.gen4[i-1,2],1.5,0.1)
+  p.by.gen5[i,1] = i-1
+  p.by.gen5[i,2] = p.by.gen5[i-1,2] + deltap(p.by.gen5[i-1,2],1.5,0.1)
+}
+plot(p.by.gen[,1],p.by.gen[,2],xlab="Generation",ylab="p",lwd=3,type='l', col="lightskyblue",ylim=c(0,1.05))
+lines(p.by.gen2[,1],p.by.gen2[,2],col="lightskyblue",lwd=3)
+lines(p.by.gen3[,1],p.by.gen3[,2],col="lightskyblue",lwd=3)
+lines(p.by.gen4[,1],p.by.gen4[,2],col="lightskyblue",lwd=3)
+lines(p.by.gen5[,1],p.by.gen5[,2],col="lightskyblue",lwd=3)
+```
+
+## \small Case 3: disruptive selection
+
+\begin{itemize}
+\item {\ncr Stable equilibria} at $p=0$ and $p=1$ (but only locally -- not globally)
+\myvs
+\item {\ncb Unstable equilibrium} at $\tilde{p} = \frac{h-1}{2h-1}$
+\myvs
+\item Empirical examples are rare
+\end{itemize}
+\vspace{1.0in}
+
+## \small Mean fitness
+
+\begin{itemize}
+\item Sewall Wright dervied the following to unify these possibilities:
+\myvs
+{\ncr $$\Delta p = \frac{pq}{2\bar{w}}\frac{d\bar{w}}{dp}$$}
+\item Some consequences:
+\myvs
+\begin{itemize}
+\item the allele frequency always changes so that mean fitness increases
+
+\item the rate of change in $p$ is proportional to the genetic variation in the population ($pq$)\\
+\end{itemize}
+\myvs\myvs
+ {\ncb $\implies$ selection always increases the mean fitness of the population, and does so at a rate proportional to the genetic variation}
+\end{itemize}
+\vspace{0.5in}
+
+## \small Mutation-selection balance
+
+\begin{itemize}
+\item Expect a {\ncr balance} between mutation and selection: alleles enter a population by mutation and, since most are deleterious, they are removed by directional selection
+\myvs
+\item Equality in the rate of addition due to mutation and removal due to selection is achieved
+\myvs
+\item First, approximate the change in $p$ in a single generation due to mutation:
+\vspace{0.5in}
+\item Then, derive an approximation due to selection:
+\vspace{0.5in}
+\item The {\ncb equilibrium frequency} is then:
+\vspace{0.5in}
+\end{itemize}
+
+## \small Testing for selection: Tajima's D
+
+\begin{itemize}
+\item {\ncr Recall} our estimators of $\theta$: Watterson's estimator and Tajima's estimator
+\myvs
+\item Both are {\ncb unbiased} estimators of $\theta$ and so when they differ they suggest selection -- why?
+\end{itemize}
+\vspace{2.0in}
+
+## \small Tajima's D statistic
+
+\begin{itemize}
+\item When the population is evolving neutrally, both the nucleotide polymorphism and the nucleotide diversity are {\ncr unbiased estimators} of $\theta$
+\myvs
+\item When their observed values are different, {\ncb deviation from neutrality} is suggested
+\myvs
+\item Tajima (1989) proposed a {\ncr test of neutrality} based on what is known as {\ncb Tajima's D statistic:}
+$$ D = \frac{\hat{\theta}_T - \hat{\theta}_W}{\sqrt{c_1S + c_2 S (S-\frac{1}{k})}}$$
+where $c_1 = \frac{b_1}{a_1} - \frac{1}{a_1^2}$ and $c_2 = \biggl(\frac{1}{a_1^2+a_2}\biggr) \biggl(b_2-\frac{n+2}{a_1n}+\frac{a_2}{a_1^2}\biggr)$
+\myvs
+\item When the null hypothesis of equilibrium and selective neutrality is true, $D$ has mean 0 and variance 1. P-values can be obtained using simulation.
+\myvs
+\item $D<0$ is often an indication of a {\ncr selective sweep}
+\myvs
+\item $D>0$ is often an indication of {\ncb balancing selection}
+\end{itemize}
+\vspace{0.2in}
+
+## \small Tajima's D statistic
+
+\begin{itemize}
+\item {\ncr Example:} Rhodopsin 3 (Rh3) gene in {\itshape Drosophila simulans} (Ayala et al. 1993)
+\end{itemize}
+
+\vspace{0.in}
+
+\scriptsize
+\begin{tabular}{c | c c c c c c c c c c c c c c c c}
+\hline
+ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 & 13 & 14 & 15 & 16\\
+\hline
+$a$ & T & C & T & A & C & C & T & C & C & T & C & G & G & T & T & A\\
+$b$ & T & C & C & T & A & C & C & T & C & C & T & G & G & T & T & T\\
+$c$ & C & T & C & C & C & C & C & T & C & T & T & T & G & C & T & A \\
+$d$ & C & T & C & C & C & C & C & T & T & C & T & G & A & C & T & T \\
+$e$ & C & T & C & C & C & T & C & T & T & T & T & G & G & C & C & A\\
+\hline
+& 6 & 6 & 4 & 7 & 4 & 4 & 4 & 4 & 6 & 6 & 4 & 4 & 4 & 6 & 4 & 6\\
+\end{tabular}
+\vspace{1.5in}
