@@ -1,0 +1,313 @@
+---
+title: "Species distribution modeling for mink in Ohio"
+output: html_document
+author: Week 14 Lab, EEOB 5330, Spring 2026
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This document gives a basic sketch for running an ecological niche model (ENM). It considers mink (<i>Neovison vison</i>) in Ohio. The steps required are below.
+
+<br><br>
+
+
+#### 0. Set up our R environment
+
+We begin by installing necessary packages and creating a workspace.
+
+```{r, echo=T} 
+#install.packages(c("terra", "maxnet","pROC"))
+
+library(terra)
+library(maxnet)
+library(pROC)
+library(dismo)
+
+dir.create("data", showWarnings = FALSE)
+dir.create("data/bioclim", showWarnings = FALSE)
+dir.create("data/studyarea", showWarnings = FALSE)
+dir.create("output", showWarnings = FALSE)
+```
+<br><br>
+
+#### 1. Download the climate data
+
+We begin by downloading the climate data that will be used to predict the range of mink. The data are downloaded from worldclim.org, and include the following variables:
+
+```{r table2, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+tabl <- "
+| Variable Name | Description   |
+|---------------|:-------------:|
+| BIO1          | Annual Mean Temperature (degrees Celsius times 10) |
+| BIO2          | Mean Diurnal Range (Mean of monthly (max temp - min temp)) |
+| BIO3          | Isothermality (BIO2/BIO7) (×100) |
+| BIO4          | Temperature Seasonality (standard deviation ×100) |
+| BIO5          | Max Temperature of Warmest Month |
+| BIO6          | Min Temperature of Coldest Month |
+| BIO7          | Temperature Annual Range (BIO5-BIO6) |
+| BIO8          | Mean Temperature of Wettest Quarter |
+| BIO9          | Mean Temperature of Driest Quarter |
+| BIO10         | Mean Temperature of Warmest Quarter |
+| BIO11         | Mean Temperature of Coldest Quarter |
+| BIO12         | Annual Precipitation |
+| BIO13         | Precipitation of Wettest Month |
+| BIO14         | Precipitation of Driest Month |
+| BIO15         | Precipitation Seasonality (Coefficient of Variation) |
+| BIO16         |  Precipitation of Wettest Quarter |
+| BIO17         | Precipitation of Driest Quarter |
+| BIO18         | Precipitation of Warmest Quarter |
+| BIO19         | Precipitation of Coldest Quarter |
+"
+cat(tabl) # output the table in a format good for HTML/PDF/docx conversion
+```
+<br><br>
+
+The climate data can be plotted, as below. Later, we will subset the data for Ohio to match the occurrence records for mink.
+
+```{r, echo=T}
+clim_files <- list.files("data/bioclim/", pattern = ".tif$", full.names = TRUE)
+clim <- rast(clim_files)
+
+plot(clim)
+```
+<br><br>
+
+#### 2. Retrieve and display occurrence data
+
+We next download occurrence data for mink (<i>Neovison vison</i>) in Ohio. We clean the data by removing records for which latitude and/or longitude are missing or for which there are duplicated observations. We also remove observations collected before 1980. The output below gives characteristics of the data following cleaning.
+
+If you were running this from scratch, you would pull the data from GBIF. Since this can take awhile, I've provide the results of this in the file <font color=blue>mink_raw.</font> Be sure that you have placed this in the proper directory. 
+
+```{r, echo=T}
+if(file.exists("data/mink_raw")){
+  load("data/mink_raw")
+}else{
+  mink_raw=gbif(genus='Lipoptena',species='cervi') # only do this once -- this downloads data from gbif; read it in after this
+  save(mink_raw,file = "data/mink_raw")
+  write.csv("data/mink_raw.csv")
+}
+
+mink_clean <- subset(mink_raw, !is.na(lat) & !is.na(lon))
+mink_unique <- mink_clean[!duplicated(mink_clean[, c("lat", "lon")]), ]
+mink_unique <- subset(mink_unique, continent == "NORTH_AMERICA" && year >= 1980)
+
+# check subsetting
+table(mink_unique$year)
+table(mink_unique$adm1)
+
+mink_vect <- vect(mink_unique, geom = c("lon", "lat"), crs = "EPSG:4326")
+
+# extract climate data from the locations where we have mink data
+env_vals <- extract(clim, mink_vect)
+mink_vect <- mink_vect[!is.na(env_vals[,2])]
+```
+<br><br>
+
+We next make the occurrence data spatial for the records restricted to Ohio. The map below shows the occurrence data overlaid on the state of Ohio.
+
+```{r, echo=T}
+Ohio <- vect("data/GISpolygon/states.shp")
+#Ohio <- states[states$coun == "Ohio"]
+
+# check that Ohio is set up correctly; plot occurrence data
+plot(Ohio)
+points(mink_unique$lon,mink_unique$lat,pch=20)
+```
+
+<br><br>
+
+The code below makes sure that there is only one observation per cell. It also extends the area considered a bit beyond Ohio's borders to help with making predictions at the edges. We then show plots of some of the bioclimatic variables limited to Ohio.
+
+```{r, echo=T}
+
+# thin points (one per raster cell)
+cells <- cellFromXY(clim[[1]], geom(mink_vect)[,1:2])
+mink_vect <- mink_vect[!duplicated(cells)]
+
+# buffer
+mink_buff <- buffer(mink_vect, width = 400000)
+
+# crop + mask
+ohio_ext <- ext(Ohio)
+
+# expand by 1 degree in all directions
+ohio_ext_expanded <- ext(
+  xmin(ohio_ext) - 1,
+  xmax(ohio_ext) + 1,
+  ymin(ohio_ext) - 1,
+  ymax(ohio_ext) + 1
+)
+
+studyArea <- crop(clim, ohio_ext_expanded)
+studyArea <- mask(studyArea, mink_buff)
+
+
+# now plot some of the bioclimatic variables
+plot(studyArea[[1]],main="Annual Mean Temperature") #  note that units are degrees Celsius times 10
+plot(Ohio,add=T)
+
+plot(studyArea[[14]],main="Precipitation of driest month") 
+plot(Ohio,add=T)
+
+plot(studyArea[[9]],main="Mean temperature of driest quarter") 
+plot(Ohio,add=T)
+
+plot(studyArea[[11]],main="Mean Temperature of Coldest Quarter") 
+plot(Ohio,add=T)
+
+plot(studyArea[[4]],main="Temperature Seasonality (standard deviation ×100)") 
+plot(Ohio,add=T)
+
+plot(studyArea[[6]],main="Min Temperature of Coldest Month") 
+plot(Ohio,add=T)
+
+plot(studyArea[[2]],main="Mean Diurnal Range (Mean of monthly (max temp - min temp))") 
+plot(Ohio,add=T)
+
+```
+<br><br>
+
+
+
+#### 3. Prepare to run MaxENT
+
+We will include some background points in our analysis. The code below specifies that we randomly pick 500 points across our study area.
+
+```{r, echo=T}
+
+set.seed(1)
+
+bg <- spatSample(
+  studyArea,
+  size = 500,
+  method = "random",
+  na.rm = TRUE,
+  as.points = TRUE
+)
+
+```
+
+<br><br>
+
+Next we divide our data into training and test sets, and combine our background and training data.
+
+```{r, echo=T}
+set.seed(1)
+
+idx <- sample(1:nrow(mink_vect), nrow(mink_vect) * 0.5)
+
+mink_train <- mink_vect[idx]
+mink_test  <- mink_vect[-idx]
+
+p <- extract(clim, mink_train)
+a <- extract(clim, bg)
+
+# remove ID column
+p <- p[,-1]
+a <- a[,-1]
+
+# combine
+X <- rbind(p, a)
+
+# response vector
+y <- c(rep(1, nrow(p)), rep(0, nrow(a)))
+
+```
+
+<br><br>
+
+#### 4. Fit MaxENT and make predictions
+
+Finally, we're ready to run our ENM model! Note that several modeling choices have been made.  Once the model is fit, we plot our predictions.
+
+```{r, echo=T}
+
+# run MaxENT
+mod <- maxnet(
+  p = y,
+  data = X,
+  f = maxnet.formula(y, X, classes = "lqph")  # linear, quadratic, product, hinge
+)
+
+# make predictions
+pred <- predict(studyArea, mod, type = "cloglog")
+
+plot(pred, main = "Predicted Mink Suitability")
+plot(Ohio, add = TRUE)
+points(geom(mink_vect), pch = 20)
+
+```
+
+<br><br>
+
+#### 5. Evaluate predictions
+
+We can evaluate the model using our test data.  This is an important step to calibrate how well our model works for data that it was not trained on. We want the Area Under the Curve (AUC) to be as large as possible.
+
+```{r, echo=T}
+
+# extract test data
+p_test <- extract(clim, mink_test)[,-1]
+a_test <- extract(clim, bg)[,-1]
+
+test_data <- rbind(p_test, a_test)
+test_labels <- c(rep(1, nrow(p_test)), rep(0, nrow(a_test)))
+
+# predictions
+pred_vals <- predict(mod, test_data, type = "cloglog")
+
+# simple AUC
+pred_vals <- as.vector(pred_vals)
+auc(test_labels, pred_vals)
+
+```
+
+<br><br>
+
+#### 6. Assess variable importance
+
+We can use a permutation approach to assess variable importance. We shuffle the values of one variable and see how much predictions worsen (by looking at AUC). The larger the drop, the more important the variable. Values close to 0 indicate that the variable is not very important.
+
+```{r, echo=T}
+
+perm_importance <- function(model, X, y) {
+  baseline <- predict(model, X, type = "cloglog")
+  
+  baseline_auc <- pROC::auc(y, as.vector(baseline))
+  
+  vars <- colnames(X)
+  importance <- numeric(length(vars))
+  
+  for (i in seq_along(vars)) {
+    X_perm <- X
+    X_perm[, i] <- sample(X_perm[, i])  # shuffle
+    
+    pred_perm <- predict(model, X_perm, type = "cloglog")
+    auc_perm <- pROC::auc(y, as.vector(pred_perm))
+    
+    importance[i] <- baseline_auc - auc_perm
+  }
+  
+  names(importance) <- vars
+  return(sort(importance, decreasing = TRUE))
+}
+
+library(pROC)
+
+imp <- perm_importance(mod, X, y)
+print(imp)
+
+```
+
+<br><br>
+
+
+The variable importance values can also be plotted, which is a bit easier to look at!
+
+```{r echo=T}
+
+barplot(imp, las = 2, main = "Variable Importance (Permutation)",col="maroon")
+
+```
