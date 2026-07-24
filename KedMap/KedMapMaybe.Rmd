@@ -91,7 +91,7 @@ if(file.exists("data/mink_raw")){
 
 mink_clean <- subset(mink_raw, !is.na(lat) & !is.na(lon))
 mink_unique <- mink_clean[!duplicated(mink_clean[, c("lat", "lon")]), ]
-mink_unique <- subset(mink_unique, continent == "NORTH_AMERICA" && year >= 1980)
+mink_unique <- subset(mink_unique, continent == "NORTH_AMERICA")
 
 # check subsetting
 table(mink_unique$year)
@@ -232,12 +232,16 @@ mod <- maxnet(
 )
 
 # make predictions
-pred <- predict(studyArea, mod, type = "cloglog")
+pred <- predict(studyArea, mod, type = "cloglog", na.rm=TRUE)
 
 plot(pred, main = "Predicted Mink Suitability")
 plot(Ohio, add = TRUE)
 points(geom(mink_vect), pch = 20)
 
+
+plot(pred, main = "Predicted Mink Suitability")
+plot(Ohio, add = TRUE)
+points(geom(mink_vect), pch = 20)
 ```
 
 <br><br>
