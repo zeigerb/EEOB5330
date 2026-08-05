@@ -1,5 +1,5 @@
 ---
-title: "Species distribution modeling for mink in Ohio"
+title: "Species distribution modeling for ked in Ohio"
 output: html_document
 author: Week 14 Lab, EEOB 5330, Spring 2026
 ---
@@ -8,7 +8,7 @@ author: Week 14 Lab, EEOB 5330, Spring 2026
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-This document gives a basic sketch for running an ecological niche model (ENM). It considers mink (<i>Neovison vison</i>) in Ohio. The steps required are below.
+This document gives a basic sketch for running an ecological niche model (ENM). It considers ked (<i>Lipoptena cervi</i>) in Ohio. The steps required are below.
 
 <br><br>
 
@@ -34,7 +34,7 @@ dir.create("output", showWarnings = FALSE)
 
 #### 1. Download the climate data
 
-We begin by downloading the climate data that will be used to predict the range of mink. The data are downloaded from worldclim.org, and include the following variables:
+We begin by downloading the climate data that will be used to predict the range of ked. The data are downloaded from worldclim.org, and include the following variables:
 
 ```{r table2, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
 tabl <- "
@@ -64,7 +64,7 @@ cat(tabl) # output the table in a format good for HTML/PDF/docx conversion
 ```
 <br><br>
 
-The climate data can be plotted, as below. Later, we will subset the data for Ohio to match the occurrence records for mink.
+The climate data can be plotted, as below. Later, we will subset the data for Ohio to match the occurrence records for ked.
 
 ```{r, echo=T}
 clim_files <- list.files("data/bioclim/", pattern = ".tif$", full.names = TRUE)
@@ -76,32 +76,32 @@ plot(clim)
 
 #### 2. Retrieve and display occurrence data
 
-We next download occurrence data for mink (<i>Neovison vison</i>) in Ohio. We clean the data by removing records for which latitude and/or longitude are missing or for which there are duplicated observations. We also remove observations collected before 1980. The output below gives characteristics of the data following cleaning.
+We next download occurrence data for ked (<i>Lipoptena cervi</i>) in Ohio. We clean the data by removing records for which latitude and/or longitude are missing or for which there are duplicated observations. We also remove observations collected before 1980. The output below gives characteristics of the data following cleaning.
 
-If you were running this from scratch, you would pull the data from GBIF. Since this can take awhile, I've provide the results of this in the file <font color=blue>mink_raw.</font> Be sure that you have placed this in the proper directory. 
+If you were running this from scratch, you would pull the data from GBIF. Since this can take awhile, I've provide the results of this in the file <font color=blue>ked_raw.</font> Be sure that you have placed this in the proper directory. 
 
 ```{r, echo=T}
-if(file.exists("data/mink_raw")){
-  load("data/mink_raw")
+if(file.exists("data/ked_raw")){
+  load("data/ked_raw")
 }else{
-  mink_raw=gbif(genus='Lipoptena',species='cervi') # only do this once -- this downloads data from gbif; read it in after this
-  save(mink_raw,file = "data/mink_raw")
-  write.csv("data/mink_raw.csv")
+  ked_raw=gbif(genus='Lipoptena',species='cervi') # only do this once -- this downloads data from gbif; read it in after this
+  save(ked_raw,file = "data/ked_raw")
+  write.csv("data/ked_raw.csv")
 }
 
-mink_clean <- subset(mink_raw, !is.na(lat) & !is.na(lon))
-mink_unique <- mink_clean[!duplicated(mink_clean[, c("lat", "lon")]), ]
-mink_unique <- subset(mink_unique, continent == "NORTH_AMERICA")
+ked_clean <- subset(ked_raw, !is.na(lat) & !is.na(lon))
+ked_unique <- ked_clean[!duplicated(ked_clean[, c("lat", "lon")]), ]
+ked_unique <- subset(ked_unique, continent == "NORTH_AMERICA")
 
 # check subsetting
-table(mink_unique$year)
-table(mink_unique$adm1)
+table(ked_unique$year)
+table(ked_unique$adm1)
 
-mink_vect <- vect(mink_unique, geom = c("lon", "lat"), crs = "EPSG:4326")
+ked_vect <- vect(ked_unique, geom = c("lon", "lat"), crs = "EPSG:4326")
 
-# extract climate data from the locations where we have mink data
-env_vals <- extract(clim, mink_vect)
-mink_vect <- mink_vect[!is.na(env_vals[,2])]
+# extract climate data from the locations where we have ked data
+env_vals <- extract(clim, ked_vect)
+ked_vect <- ked_vect[!is.na(env_vals[,2])]
 ```
 <br><br>
 
@@ -113,7 +113,7 @@ Ohio <- vect("data/GISpolygon/states.shp")
 
 # check that Ohio is set up correctly; plot occurrence data
 plot(Ohio)
-points(mink_unique$lon,mink_unique$lat,pch=20)
+points(ked_unique$lon,ked_unique$lat,pch=20)
 ```
 
 <br><br>
@@ -123,11 +123,11 @@ The code below makes sure that there is only one observation per cell. It also e
 ```{r, echo=T}
 
 # thin points (one per raster cell)
-cells <- cellFromXY(clim[[1]], geom(mink_vect)[,1:2])
-mink_vect <- mink_vect[!duplicated(cells)]
+cells <- cellFromXY(clim[[1]], geom(ked_vect)[,1:2])
+ked_vect <- ked_vect[!duplicated(cells)]
 
 # buffer
-mink_buff <- buffer(mink_vect, width = 400000)
+ked_buff <- buffer(ked_vect, width = 400000)
 
 # crop + mask
 ohio_ext <- ext(Ohio)
@@ -141,7 +141,7 @@ ohio_ext_expanded <- ext(
 )
 
 studyArea <- crop(clim, ohio_ext_expanded)
-studyArea <- mask(studyArea, mink_buff)
+studyArea <- mask(studyArea, ked_buff)
 
 
 # now plot some of the bioclimatic variables
@@ -196,12 +196,12 @@ Next we divide our data into training and test sets, and combine our background 
 ```{r, echo=T}
 set.seed(1)
 
-idx <- sample(1:nrow(mink_vect), nrow(mink_vect) * 0.5)
+idx <- sample(1:nrow(ked_vect), nrow(ked_vect) * 0.5)
 
-mink_train <- mink_vect[idx]
-mink_test  <- mink_vect[-idx]
+ked_train <- ked_vect[idx]
+ked_test  <- ked_vect[-idx]
 
-p <- extract(clim, mink_train)
+p <- extract(clim, ked_train)
 a <- extract(clim, bg)
 
 # remove ID column
@@ -234,14 +234,14 @@ mod <- maxnet(
 # make predictions
 pred <- predict(studyArea, mod, type = "cloglog", na.rm=TRUE)
 
-plot(pred, main = "Predicted Mink Suitability")
+plot(pred, main = "Predicted Ked Suitability")
 plot(Ohio, add = TRUE)
-points(geom(mink_vect), pch = 20)
+points(geom(ked_vect), pch = 20)
 
 
-plot(pred, main = "Predicted Mink Suitability")
+plot(pred, main = "Predicted Ked Suitability")
 plot(Ohio, add = TRUE)
-points(geom(mink_vect), pch = 20)
+points(geom(ked_vect), pch = 20)
 ```
 
 <br><br>
@@ -253,7 +253,7 @@ We can evaluate the model using our test data.  This is an important step to cal
 ```{r, echo=T}
 
 # extract test data
-p_test <- extract(clim, mink_test)[,-1]
+p_test <- extract(clim, ked_test)[,-1]
 a_test <- extract(clim, bg)[,-1]
 
 test_data <- rbind(p_test, a_test)
